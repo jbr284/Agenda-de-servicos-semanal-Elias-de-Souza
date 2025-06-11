@@ -1,11 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agenda de Serviços Semanal</title>
-    <link rel="manifest" href="manifest.json">
 
     <!-- Incluindo Firebase via CDN (versão tradicional) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -112,6 +110,7 @@
     <h2>ELIAS DE SOUZA</h2>
     <h3>Função: MONTADOR</h3>
 
+    <!-- Formulário para registrar serviços -->
     <div class="form-container">
         <form id="agenda-form">
             <div>
@@ -158,9 +157,13 @@
         </form>
     </div>
 
+    <!-- Exibição dos registros de dados -->
     <h4>Serviços Registrados:</h4>
-    <div class="records-container" id="records-container"></div>
+    <div class="records-container" id="records-container">
+        <!-- Registros serão carregados aqui -->
+    </div>
 
+    <!-- Botão para limpar registros -->
     <div class="form-container">
         <button id="clear-records-button">Limpar Registros</button>
     </div>
@@ -175,8 +178,81 @@
             messagingSenderId: "220604304498",
             appId: "1:220604304498:web:79714de3b06094195686eb"
         };
+
+        // Inicializa o Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
+
+        // Função para registrar o serviço no Firebase
+        document.getElementById('agenda-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const diaSemana = document.getElementById('dia-semana').value; // Obtém o dia da semana automaticamente
+            const cliente = document.getElementById('cliente').value;
+            const produto = document.getElementById('produto').value;
+            const servico = document.getElementById('servico').value;
+            const rua = document.getElementById('rua').value;
+            const numero = document.getElementById('numero').value;
+            const bairro = document.getElementById('bairro').value;
+            const cidade = document.getElementById('cidade').value;
+
+            // Gerar uma nova chave única para o serviço
+            const newServiceKey = firebase.database().ref().child('servicos').push().key;
+            const updates = {};
+            updates['/servicos/' + newServiceKey] = {
+                diaSemana: diaSemana, // Calculando automaticamente o dia da semana
+                cliente: cliente,
+                produto: produto,
+                servico: servico,
+                endereco: `${rua}, Nº ${numero}, Bairro: ${bairro}, Cidade: ${cidade}`
+            };
+
+            // Escrever dados no Firebase
+            firebase.database().ref().update(updates);
+
+            // Limpar o formulário após o envio
+            document.getElementById('agenda-form').reset();
+        });
+
+        // Função para carregar os serviços do Firebase
+        function carregarServicos() {
+            const recordsContainer = document.getElementById('records-container');
+            recordsContainer.innerHTML = ""; // Limpa os registros antes de carregar novos
+
+            // Obtendo dados do Firebase
+            firebase.database().ref('servicos').on('child_added', function(snapshot) {
+                const servico = snapshot.val();
+                const card = document.createElement('div');
+                card.classList.add('record-card');
+
+                card.innerHTML = `
+                    <h5>Dia: ${servico.diaSemana}</h5>
+                    <p><strong>Cliente:</strong> ${servico.cliente}</p>
+                    <p><strong>Produto:</strong> ${servico.produto}</p>
+                    <p><strong>Serviço:</strong> ${servico.servico}</p>
+                    <p><strong>Endereço:</strong> ${servico.endereco}</p>
+                `;
+
+                recordsContainer.appendChild(card);
+            });
+        }
+
+        // Função para limpar todos os registros do Firebase
+        document.getElementById('clear-records-button').addEventListener('click', function() {
+            // Apagar todos os registros do Firebase
+            firebase.database().ref('servicos').remove()
+                .then(() => {
+                    alert("Registros apagados com sucesso!");
+                    carregarServicos(); // Atualiza a exibição após limpar os registros
+                })
+                .catch((error) => {
+                    console.error("Erro ao apagar registros:", error);
+                });
+        });
+
+        // Carregar os serviços ao carregar a página
+        window.onload = carregarServicos;
     </script>
+
 </body>
 </html>
